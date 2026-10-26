@@ -1,0 +1,2 @@
+import {env} from 'cloudflare:workers';
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){const {id}=await params;if(!/^[a-f0-9-]{36}$/.test(id))return new Response('Não encontrada',{status:404});const o=await (env as unknown as {BUCKET:R2Bucket}).BUCKET.get(id);return o?new Response(o.body,{headers:{'Content-Type':'image/jpeg','Cache-Control':'private, max-age=3600','X-Content-Type-Options':'nosniff'}}):new Response('Não encontrada',{status:404});}

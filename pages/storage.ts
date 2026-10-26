@@ -1,6 +1,7 @@
 import type {OperationsClient,Operation,OperationFields} from '../app/data-client';
-export const projectUrl=(import.meta.env.VITE_SUPABASE_URL||'').replace(/\/$/,'');
-const publicKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||'';
+import projectConfig from './supabase-config.json';
+export const projectUrl=(import.meta.env.VITE_SUPABASE_URL||projectConfig.url).replace(/\/$/,'');
+const publicKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||projectConfig.publishableKey;
 export const configured=!!projectUrl&&!!publicKey;
 const sessionKey='suma-auth-session';
 type Session={access_token:string,refresh_token:string,expires_at:number,user:{id:string}};

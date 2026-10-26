@@ -6,16 +6,16 @@ Sistema piloto para registrar varrição de vias públicas em Ribeirão Preto. I
 
 - **Endereço principal:** https://gabrielcabteo.github.io/suma-operacoes/
 - **GitHub Pages:** agora publica a interface COMPLETA do sistema, sem página de acesso ou redirecionamento. O domínio permanece durante o uso.
-- **Armazenamento:** preparado para Supabase com autenticação, permissões e bucket privado. Se as variáveis do projeto estiverem ausentes, o sistema exibe aviso e não permite salvar. Nenhum dado é salvo como se o servidor estivesse conectado.
+- **Armazenamento:** Supabase conectado com autenticação, permissões por usuário e bucket privado `evidencias`. É necessário criar e autorizar os usuários para entrar.
 - **Hospedagem anterior:** https://varricao-rp-operacoes.sleekvenus20.chatgpt.site continua separada, com seus bindings D1/R2 e acesso privado. Dados e fotos existentes não são migrados automaticamente.
 - **Código:** o repositório mantém também as APIs da hospedagem anterior. O build de Pages usa somente a interface e o adaptador de Supabase; essas APIs não são executadas no Pages.
 
 ## Conectar armazenamento e autenticação
 
-1. Crie um projeto no plano gratuito do Supabase e aplique `supabase/001_operations.sql` **uma única vez em um projeto novo**.
+1. O projeto `suma-operacoes` já foi criado em São Paulo e o esquema foi aplicado. **Não reaplique** o SQL de instalação nesse projeto. O arquivo `supabase/001_operations.sql` serve como referência para projetos novos.
 2. Crie os usuários em Authentication → Users. Autorize cada um na tabela `public.members`, usando `admin` para gestão e `worker` para campo. Não há cadastro público ou concessão automática de acesso. Trabalhadores consultam seus próprios registros; administradores consultam todos.
-3. No GitHub, em Settings → Secrets and variables → Actions → **Variables**, defina `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` (chave pública publishable/anon). **Nunca use service_role, chave secreta ou token administrativo no frontend.** A segurança depende das políticas RLS e do bucket privado definidos na migração.
-4. Execute novamente o workflow **pages build and deployment**. O build incorpora as duas configurações públicas. Sem elas, a interface abre com o envio desativado.
+3. `pages/supabase-config.json` contém somente URL e chave **publishable pública**, próprias para frontend. Não contém senha, token de usuário, service_role ou chave administrativa. A segurança é imposta por RLS e bucket privado. As variáveis opcionais `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` do GitHub Actions podem substituir essa configuração.
+4. Alterações em `pages/supabase-config.json` disparam o workflow **pages build and deployment**. Sem configuração válida, o frontend não permite salvar.
 5. Valide login, foto, envio e relatórios com usuários autorizados. A política de retenção, backup e monitoramento das franquias precisa ser definida antes de ampliar o uso.
 
 A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas senhas no navegador. As fotos recebem links assinados temporários. Atualize a consulta caso uma foto expire. Usuários não autorizados não podem cadastrar dados ou listar evidências.
@@ -76,3 +76,7 @@ O desenvolvimento precisa dos bindings `DB` (D1) e `BUCKET` (R2). A configuraç�
 A versão Pages pode funcionar de forma independente do Sites após configurar Supabase Auth, banco e armazenamento. GitHub Pages sozinho não executa as APIs antigas de D1/R2. A eventual gratuidade depende das franquias efetivas do provedor e do volume acumulado de imagens.
 
 Não inclua fotos operacionais, nomes de colaboradores reais, exportações de banco, senhas ou tokens no repositório público. A marca SUMA Brasil pertence ao respectivo titular.
+
+## Primeiro administrador
+
+Nenhuma identidade recebe acesso administrativo automaticamente. O titular deve criar seu usuário em Authentication → Users do Supabase, definindo a própria senha, e confirmar expressamente o e-mail e o papel desejado. A autorização na tabela members deve usar o UUID retornado pelo Auth; nunca use a chave service_role no navegador.

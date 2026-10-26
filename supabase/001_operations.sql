@@ -14,7 +14,7 @@ create function private.is_operation_admin() returns boolean language sql stable
 revoke all on function private.is_operation_member() from public;
 revoke all on function private.is_operation_admin() from public;
 grant execute on function private.is_operation_member(),private.is_operation_admin() to authenticated;
-create policy member_read on public.members for select to authenticated using(user_id=auth.uid() or private.is_operation_admin());
+create policy member_read on public.members for select to authenticated using(user_id=(select auth.uid()) or (select private.is_operation_admin()));
 grant select on public.members to authenticated;
 -- No client-side membership writes: add approved users through the dashboard/server.
 create table public.operations (
@@ -28,16 +28,16 @@ create table public.operations (
  neighborhood text not null check(length(trim(neighborhood)) between 1 and 160),
  segment text not null check(length(trim(segment)) between 1 and 200),
  notes text not null default '' check(length(notes)<=1000),
- photos text[] not null check(cardinality(photos) between 1 and 3)
+ photos text[] not null check(cardinality(photos) between 1 and 3 and array_position(photos,null) is null)
 );
 create index operations_date on public.operations(date);
 create index operations_author_date on public.operations(author_id,date);
 alter table public.operations enable row level security;
-create function private.operation_owns_photos(paths text[],operation_id text) returns boolean language sql stable set search_path='' as $$select not exists(select 1 from unnest(paths) p where p not like auth.uid()::text||'/'||operation_id||'/%')$$;
+create function private.operation_owns_photos(paths text[],operation_id text) returns boolean language sql stable set search_path='' as $$select not exists(select 1 from unnest(paths) p where p is null or p not like auth.uid()::text||'/'||operation_id||'/%' or not exists(select 1 from storage.objects o where o.bucket_id='evidencias' and o.name=p))$$;
 revoke all on function private.operation_owns_photos(text[],text) from public;
 grant execute on function private.operation_owns_photos(text[],text) to authenticated;
-create policy operation_read on public.operations for select to authenticated using(private.is_operation_member() and (author_id=auth.uid() or private.is_operation_admin()));
-create policy operation_insert on public.operations for insert to authenticated with check(private.is_operation_member() and author_id=auth.uid() and private.operation_owns_photos(photos,id));
+create policy operation_read on public.operations for select to authenticated using((select private.is_operation_member()) and (author_id=(select auth.uid()) or (select private.is_operation_admin())));
+create policy operation_insert on public.operations for insert to authenticated with check((select private.is_operation_member()) and author_id=(select auth.uid()) and private.operation_owns_photos(photos,id));
 grant select,insert on public.operations to authenticated;
 -- No update/delete policies for completed records.
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('evidencias','evidencias',false,1200000,array['image/jpeg']);

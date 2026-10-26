@@ -4,11 +4,23 @@ Sistema piloto para registrar varrição de vias públicas em Ribeirão Preto. I
 
 ## Estado atual
 
-- **Aplicação:** https://varricao-rp-operacoes.sleekvenus20.chatgpt.site
-- **Acesso:** privado, requer login com ChatGPT e autorização no Site. A equipe ainda não tem acesso coletivo configurado.
-- **GitHub Pages:** publica exclusivamente a página `docs/index.html`, com acesso à aplicação acima. Não hospeda o formulário, as APIs, os dados nem as fotos.
-- **Código:** este repositório contém o código-fonte da aplicação, os recursos visuais, a migração do banco e os workflows.
-- **Sincronização:** enviar código ao GitHub não atualiza a aplicação hospedada em Sites. A publicação do servidor continua sendo separada.
+- **Endereço principal:** https://gabrielcabteo.github.io/suma-operacoes/
+- **GitHub Pages:** agora publica a interface COMPLETA do sistema, sem página de acesso ou redirecionamento. O domínio permanece durante o uso.
+- **Armazenamento:** preparado para Supabase com autenticação, permissões e bucket privado. Se as variáveis do projeto estiverem ausentes, o sistema exibe aviso e não permite salvar. Nenhum dado é salvo como se o servidor estivesse conectado.
+- **Hospedagem anterior:** https://varricao-rp-operacoes.sleekvenus20.chatgpt.site continua separada, com seus bindings D1/R2 e acesso privado. Dados e fotos existentes não são migrados automaticamente.
+- **Código:** o repositório mantém também as APIs da hospedagem anterior. O build de Pages usa somente a interface e o adaptador de Supabase; essas APIs não são executadas no Pages.
+
+## Conectar armazenamento e autenticação
+
+1. Crie um projeto no plano gratuito do Supabase e aplique `supabase/001_operations.sql` **uma única vez em um projeto novo**.
+2. Crie os usuários em Authentication → Users. Autorize cada um na tabela `public.members`, usando `admin` para gestão e `worker` para campo. Não há cadastro público ou concessão automática de acesso. Trabalhadores consultam seus próprios registros; administradores consultam todos.
+3. No GitHub, em Settings → Secrets and variables → Actions → **Variables**, defina `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` (chave pública publishable/anon). **Nunca use service_role, chave secreta ou token administrativo no frontend.** A segurança depende das políticas RLS e do bucket privado definidos na migração.
+4. Execute novamente o workflow **pages build and deployment**. O build incorpora as duas configurações públicas. Sem elas, a interface abre com o envio desativado.
+5. Valide login, foto, envio e relatórios com usuários autorizados. A política de retenção, backup e monitoramento das franquias precisa ser definida antes de ampliar o uso.
+
+A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas senhas no navegador. As fotos recebem links assinados temporários. Atualize a consulta caso uma foto expire. Usuários não autorizados não podem cadastrar dados ou listar evidências.
+
+O bucket aceita apenas JPEG até 1,2 MB por foto. Se uma tentativa de envio falhar, podem permanecer fotos de um registro ainda não concluído; uma nova tentativa reutiliza os mesmos caminhos. A limpeza de órfãos deve ser administrada pelo responsável. Não existe promessa de armazenamento ilimitado ou de custo zero em qualquer volume.
 
 ## Funcionalidades
 
@@ -23,7 +35,7 @@ O envio requer internet. Os campos e imagens são mantidos apenas na página abe
 3. Em **Actions**, abra **pages build and deployment** e clique em **Run workflow** se a primeira execução tiver falhado antes da ativação.
 4. Use o endereço mostrado no job `deploy` após o sucesso. Não considere a página publicada antes da confirmação do workflow.
 
-O workflow publica a pasta `docs` após alterações nela ou por execução manual. Não utiliza tokens pessoais ou serviços pagos. A configuração inicial de Pages não é feita automaticamente pelo workflow, pois o token padrão do Actions não permite habilitá-lo.
+O workflow compila a aplicação estática com Vite e publica `dist-pages` após alterações no código ou por execução manual. Não utiliza tokens pessoais ou serviços pagos. A configuração inicial de Pages não é feita automaticamente pelo workflow, pois o token padrão do Actions não permite habilitá-lo.
 
 ## Desenvolvimento da aplicação
 
@@ -53,13 +65,14 @@ O desenvolvimento precisa dos bindings `DB` (D1) e `BUCKET` (R2). A configuraç�
 - `app/api/photos/[id]/route.ts`: acesso às imagens.
 - `db/` e `drizzle/`: esquema e migrações.
 - `public/suma-brasil.png`: marca usada na interface.
-- `docs/`: página de acesso publicada no GitHub Pages.
+- `pages/`: entrada da aplicação estática, login e adaptador Supabase.
+- `supabase/001_operations.sql`: esquema, políticas e bucket privado.
 - `.github/workflows/`: publicação de Pages e validação do código.
 
 ## Antes do uso pela equipe
 
-É necessário configurar acesso dos colaboradores e permissões por função, testar câmera e envio de fotos em celulares reais, definir backup, retenção das imagens e limites de uso. A proteção atual é fornecida pelo acesso privado da hospedagem Sites; as APIs não devem ser expostas em outro servidor sem autenticação própria.
+É necessário configurar acesso dos colaboradores e permissões por função, testar câmera e envio de fotos em celulares reais, definir backup, retenção das imagens e limites de uso. Na versão Pages, a proteção dos dados é feita pelo Supabase Auth e pelas políticas RLS. As APIs antigas de Sites não devem ser expostas em outro servidor sem autenticação própria.
 
-Para hospedar a aplicação de forma independente do Sites, será necessário configurar autenticação e um servidor compatível com D1/R2 ou adaptar as APIs a outro provedor. GitHub Pages sozinho não executa essas APIs. A eventual gratuidade depende das franquias efetivas do provedor e do volume acumulado de imagens.
+A versão Pages pode funcionar de forma independente do Sites após configurar Supabase Auth, banco e armazenamento. GitHub Pages sozinho não executa as APIs antigas de D1/R2. A eventual gratuidade depende das franquias efetivas do provedor e do volume acumulado de imagens.
 
 Não inclua fotos operacionais, nomes de colaboradores reais, exportações de banco, senhas ou tokens no repositório público. A marca SUMA Brasil pertence ao respectivo titular.

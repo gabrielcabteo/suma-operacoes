@@ -80,3 +80,9 @@ Não inclua fotos operacionais, nomes de colaboradores reais, exportações de b
 ## Primeiro administrador
 
 Nenhuma identidade recebe acesso administrativo automaticamente. O titular deve criar seu usuário em Authentication → Users do Supabase, definindo a própria senha, e confirmar expressamente o e-mail e o papel desejado. A autorização na tabela members deve usar o UUID retornado pelo Auth; nunca use a chave service_role no navegador.
+
+## Login Google
+
+O botão **Entrar com Google** está implementado com `@supabase/supabase-js` em versão exata e fluxo PKCE, incluindo restauração da sessão, validação do usuário no servidor e verificação de vínculo em `members`. A autenticação não concede acesso operacional automaticamente. O login por senha continua disponível.
+
+É necessário configurar o provedor e as URLs no Google Cloud e no Supabase. Siga [Ativar login com Google](documentation/google-login.md). Enquanto o provedor estiver desativado, o botão fica indisponível e a tela informa o motivo. Não são incluídos Client ID ou Client Secret do Google no código.

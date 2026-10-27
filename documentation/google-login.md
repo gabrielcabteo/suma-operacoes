@@ -35,7 +35,7 @@ Use a URL exata, incluindo a barra final. O callback no Google é a URL Supabase
 
 Recarregue o site. A indicação de Google em configuração só desaparece quando `/auth/v1/settings` reporta o provedor habilitado. Clique em **Entrar com Google** e conclua a escolha de conta e o consentimento. Confira que o retorno ocorre no endereço do sistema.
 
-Uma conta Google confirmada cria sua identidade no Supabase Auth. O e-mail administrativo expressamente autorizado pelo titular é tratado pela configuração privada do banco. Os demais usuários precisam ser cadastrados em `public.members` com papel `worker` ou `admin` por um responsável autorizado. Não há autoinscrição de colaboradores na operação. Usuários sem vínculo veem **Acesso aguardando liberação** e não acessam o formulário operacional.
+Uma conta Google confirmada cria sua identidade no Supabase Auth e recebe automaticamente o papel de colaborador (`worker`). O administrador já aprovado permanece como único administrador. O colaborador consulta seus próprios registros e fotos; o administrador consulta todos. Não é necessário aprovar usuários individualmente. Contas banidas no painel do Supabase são impedidas de consultar e enviar dados, mesmo com JWT ainda válido. Links de imagem já emitidos expiram em até 60 segundos.
 
 O login convencional com e-mail e senha permanece disponível para contas que possuam senha.
 

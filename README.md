@@ -6,19 +6,19 @@ Sistema piloto para registrar varrição de vias públicas em Ribeirão Preto. I
 
 - **Endereço principal:** https://gabrielcabteo.github.io/suma-operacoes/
 - **GitHub Pages:** agora publica a interface COMPLETA do sistema, sem página de acesso ou redirecionamento. O domínio permanece durante o uso.
-- **Armazenamento:** Supabase conectado com autenticação, permissões por usuário e bucket privado `evidencias`. É necessário criar e autorizar os usuários para entrar.
+- **Armazenamento:** Supabase conectado com autenticação, permissões por usuário e bucket privado `evidencias`. Contas com e-mail confirmado entram automaticamente como colaboradores. A conta administrativa existente é preservada.
 - **Hospedagem anterior:** https://varricao-rp-operacoes.sleekvenus20.chatgpt.site continua separada, com seus bindings D1/R2 e acesso privado. Dados e fotos existentes não são migrados automaticamente.
 - **Código:** o repositório mantém também as APIs da hospedagem anterior. O build de Pages usa somente a interface e o adaptador de Supabase; essas APIs não são executadas no Pages.
 
 ## Conectar armazenamento e autenticação
 
 1. O projeto `suma-operacoes` já foi criado em São Paulo e o esquema foi aplicado. **Não reaplique** o SQL de instalação nesse projeto. O arquivo `supabase/001_operations.sql` serve como referência para projetos novos.
-2. Crie os usuários em Authentication → Users. Autorize cada um na tabela `public.members`, usando `admin` para gestão e `worker` para campo. Não há cadastro público ou concessão automática de acesso. Trabalhadores consultam seus próprios registros; administradores consultam todos.
+2. Usuários confirmados são inscritos automaticamente em `public.members` como `worker`, inclusive os usuários confirmados que já existiam. O administrador já aprovado permanece como único `admin`. Trabalhadores consultam seus próprios registros; o administrador consulta todos. Não há promoção de novos administradores pelo cliente.
 3. `pages/supabase-config.json` contém somente URL e chave **publishable pública**, próprias para frontend. Não contém senha, token de usuário, service_role ou chave administrativa. A segurança é imposta por RLS e bucket privado. As variáveis opcionais `SUPABASE_URL` e `SUPABASE_PUBLISHABLE_KEY` do GitHub Actions podem substituir essa configuração.
 4. Alterações em `pages/supabase-config.json` disparam o workflow **pages build and deployment**. Sem configuração válida, o frontend não permite salvar.
 5. Valide login, foto, envio e relatórios com usuários autorizados. A política de retenção, backup e monitoramento das franquias precisa ser definida antes de ampliar o uso.
 
-A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas senhas no navegador. As fotos recebem links assinados temporários. Atualize a consulta caso uma foto expire. Usuários não autorizados não podem cadastrar dados ou listar evidências.
+A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas senhas no navegador. As fotos recebem links assinados de 60 segundos; atualize a consulta caso expirem. Contas bloqueadas não podem fazer novas consultas, gerar novos links ou enviar dados. Links já emitidos permanecem válidos até expirar; conteúdo já baixado não pode ser recolhido.
 
 O bucket aceita apenas JPEG até 1,2 MB por foto. Se uma tentativa de envio falhar, podem permanecer fotos de um registro ainda não concluído; uma nova tentativa reutiliza os mesmos caminhos. A limpeza de órfãos deve ser administrada pelo responsável. Não existe promessa de armazenamento ilimitado ou de custo zero em qualquer volume.
 
@@ -83,6 +83,10 @@ Nenhuma identidade recebe acesso administrativo automaticamente. O titular deve 
 
 ## Login Google
 
-O botão **Entrar com Google** está implementado com `@supabase/supabase-js` em versão exata e fluxo PKCE, incluindo restauração da sessão, validação do usuário no servidor e verificação de vínculo em `members`. A autenticação não concede acesso operacional automaticamente. O login por senha continua disponível.
+O botão **Entrar com Google** está implementado com `@supabase/supabase-js` em versão exata e fluxo PKCE, incluindo restauração da sessão, validação do usuário no servidor e verificação de vínculo em `members`. Contas confirmadas recebem acesso automático como colaborador; o administrador existente é preservado. O login por senha continua disponível.
 
 É necessário configurar o provedor e as URLs no Google Cloud e no Supabase. Siga [Ativar login com Google](documentation/google-login.md). Enquanto o provedor estiver desativado, o botão fica indisponível e a tela informa o motivo. Não são incluídos Client ID ou Client Secret do Google no código.
+
+## Bloquear um usuário
+
+No Supabase, abra Authentication → Users, selecione o usuário e use Ban user. As funções internas de autorização consultam `auth.users.banned_until` em cada nova requisição, inclusive quando um JWT antigo ainda não expirou. Desbanir restabelece o acesso de colaborador quando a conta é confirmada. Não é necessário apagar o usuário nem seus relatórios.

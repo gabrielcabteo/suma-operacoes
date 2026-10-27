@@ -9,14 +9,19 @@ create table public.members (
  display_name text not null default ''
 );
 alter table public.members enable row level security;
-create function private.is_operation_member() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.members where user_id=auth.uid())$$;
-create function private.is_operation_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.members where user_id=auth.uid() and role='admin')$$;
+create function private.is_operation_member() returns boolean language sql stable security definer set search_path='' as $$select auth.uid() is not null and exists(select 1 from public.members m join auth.users u on u.id=m.user_id where m.user_id=auth.uid() and u.email_confirmed_at is not null and (u.banned_until is null or u.banned_until<=now()))$$;
+create function private.is_operation_admin() returns boolean language sql stable security definer set search_path='' as $$select auth.uid() is not null and exists(select 1 from public.members m join auth.users u on u.id=m.user_id where m.user_id=auth.uid() and m.role='admin' and u.email_confirmed_at is not null and (u.banned_until is null or u.banned_until<=now()))$$;
 revoke all on function private.is_operation_member() from public;
 revoke all on function private.is_operation_admin() from public;
 grant execute on function private.is_operation_member(),private.is_operation_admin() to authenticated;
-create policy member_read on public.members for select to authenticated using(user_id=(select auth.uid()) or (select private.is_operation_admin()));
+create policy member_read on public.members for select to authenticated using((select private.is_operation_member()) and (user_id=(select auth.uid()) or (select private.is_operation_admin())));
 grant select on public.members to authenticated;
--- No client-side membership writes: add approved users through the dashboard/server.
+-- New confirmed accounts receive worker access; admin assignment stays server-side.
+create function private.enroll_confirmed_worker() returns trigger language plpgsql security definer set search_path='' as $$ begin if new.email_confirmed_at is not null and (new.banned_until is null or new.banned_until<=now()) then insert into public.members(user_id,role,display_name) values(new.id,'worker','') on conflict(user_id) do nothing; end if; return new; end; $$;
+revoke all on function private.enroll_confirmed_worker() from public,anon,authenticated;
+create trigger enroll_confirmed_worker after insert or update of email_confirmed_at,email,banned_until on auth.users for each row execute function private.enroll_confirmed_worker();
+insert into public.members(user_id,role,display_name) select u.id,'worker','' from auth.users u where u.email_confirmed_at is not null and (u.banned_until is null or u.banned_until<=now()) on conflict(user_id) do nothing;
+-- No client-side membership writes or promotions to administrator.
 create table public.operations (
  id text primary key check(id ~ '^[a-f0-9-]{36}$'),
  author_id uuid not null references auth.users(id),
@@ -47,4 +52,4 @@ create policy evidence_update on storage.objects for update to authenticated usi
 commit;
 -- Create users through Authentication / Users, then authorize each user explicitly:
 -- insert into public.members(user_id,role,display_name) values('<auth user UUID>','admin','Responsável');
--- Use 'worker' for field workers. Workers see their own records; admins see all.
+-- Worker enrollment is automatic. Workers see their own records; the admin sees all.

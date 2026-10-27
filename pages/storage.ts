@@ -1,11 +1,12 @@
 import {createClient} from '@supabase/supabase-js';
+import {makeAuthStorage} from './auth-storage';
 import type {OperationsClient,Operation,OperationFields} from '../app/data-client';
 import projectConfig from './supabase-config.json';
 export const projectUrl=(import.meta.env.VITE_SUPABASE_URL||projectConfig.url).replace(/\/$/,'');
 const publicKey=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||projectConfig.publishableKey;
 export const configured=!!projectUrl&&!!publicKey;
 const sessionKey='suma-auth-session-v2';
-export const supabase=configured?createClient(projectUrl,publicKey,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:sessionStorage,storageKey:sessionKey}}):null;
+export const supabase=configured?createClient(projectUrl,publicKey,{auth:{flowType:'pkce',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:makeAuthStorage(sessionStorage,localStorage),storageKey:sessionKey}}):null;
 export async function clearSession(){if(supabase)await supabase.auth.signOut({scope:'local'});sessionStorage.removeItem('suma-auth-session');}
 export async function signIn(email:string,password:string){if(!supabase)throw Error('Armazenamento não conectado.');const {error}=await supabase.auth.signInWithPassword({email,password});if(error)throw Error('Não foi possível entrar. Confira seu e-mail e sua senha.');}
 export async function googleProviderEnabled(){if(!configured)return false;const r=await fetch(projectUrl+'/auth/v1/settings',{headers:{apikey:publicKey}});if(!r.ok)throw Error('Não foi possível verificar o login Google.');const settings=await r.json() as {external?:{google?:boolean}};return settings.external?.google===true;}

@@ -90,3 +90,9 @@ O botão **Entrar com Google** está implementado com `@supabase/supabase-js` em
 ## Bloquear um usuário
 
 No Supabase, abra Authentication → Users, selecione o usuário e use Ban user. As funções internas de autorização consultam `auth.users.banned_until` em cada nova requisição, inclusive quando um JWT antigo ainda não expirou. Desbanir restabelece o acesso de colaborador quando a conta é confirmada. Não é necessário apagar o usuário nem seus relatórios.
+
+## Criar e configurar conta
+
+A tela de entrada inclui **Criar conta** e **Esqueci minha senha**. Depois do login, **Minha conta** permite editar o nome e alterar a senha exclusiva do SUMA Operações. O e-mail é somente leitura e não há campo para elevar permissões. Novos usuários confirmados continuam entrando como colaboradores.
+
+Consulte [Cadastro e configuração da conta](documentation/account.md) para os fluxos de confirmação, recuperação e limites do envio de e-mails. Os testes são simulados; não foram enviados e-mails ou alteradas credenciais reais durante a implementação.

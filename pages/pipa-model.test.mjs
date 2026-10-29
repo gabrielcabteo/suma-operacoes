@@ -37,6 +37,7 @@ const snapshot={teams,jobs:[job],visits:[v]};
 const csv=washingCsv(snapshot,'2026-11');
 function parse(raw){const out=[],row=[];let value='',quoted=false;for(let i=1;i<raw.length;i++){const c=raw[i];if(c==='"'){if(quoted&&raw[i+1]==='"'){value+='"';i++;}else quoted=!quoted;}else if(c===';'&&!quoted){row.push(value);value='';}else if(c==='\r'&&raw[i+1]==='\n'&&!quoted){row.push(value);out.push([...row]);row.length=0;value='';i++;}else value+=c;}row.push(value);out.push(row);return out;}
 const parsed=parse(csv);assert.equal(csv.charCodeAt(0),0xfeff);assert.equal(parsed[0].length,csvHeaders.length);assert.equal(parsed[1].length,csvHeaders.length);assert.equal(parsed[1][5],"'=1+1");assert.equal(parsed[1][20],'0');assert.equal(parsed[1][21],'0');assert.equal(parsed[1][23],v.notes);assert.ok(parsed[1][31].endsWith('query=0,0'));assert.equal(parsed[1][40],'author');assert.equal(parsed[1][41],'actor');
+const negative=parse(washingCsv({...snapshot,visits:[{...v,latitude:-21.17,longitude:-47.81}]},'2026-11'))[1];assert.equal(negative[27],'-21.17');assert.equal(negative[28],'-47.81');
 assert.equal(snapshotRows(snapshot,'2026-11').length,1);assert.equal(snapshotRows(snapshot,'2026-12').length,0);
 assert.equal(nearbyAddress([v],0,0)?.location,'Local');assert.equal(nearbyAddress([v],1,1),null);
 assert.equal(nearbyAddress([{...v,accuracy_m:300}],0,0),null);

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {blankEntry,elapsedMinutes,monthRange,monthlyCsv,validateEntry,csvHeaders} from './field-model.mjs';
+function parseCsv(raw){const rows=[],row=[];let value='',quoted=false;for(let i=1;i<raw.length;i++){const c=raw[i];if(c==='"'){if(quoted&&raw[i+1]==='"'){value+='"';i++;}else quoted=!quoted;}else if(c===';'&&!quoted){row.push(value);value='';}else if(c==='\r'&&raw[i+1]==='\n'&&!quoted){row.push(value);rows.push([...row]);row.length=0;value='';i++;}else value+=c;}row.push(value);rows.push(row);return rows;}
+const demand={...blankEntry('demand'),id:'demand',author_id:'author',created_at:'2026-10-01T08:00:00Z',updated_at:'2026-10-02T08:00:00Z',service_date:'2026-10-01',title:'=1+1',location:'Rua; "Centro"\nEntrada',responsible:'José',team:'Padrão 1',photos:[],notes:'Pendente; retorno',status:'pending',headcount:0};
+assert.throws(()=>validateEntry(demand),/Efetivo/);demand.headcount=3;validateEntry(demand);
+const washing={...demand,id:'washing',service_type:'washing',driver:'Cleber',vehicle:'Final 75',title:'Lavagem',water_liters:0,refills:0,start_time:'23:30',end_time:'00:20',overnight:true};
+validateEntry(washing);assert.equal(elapsedMinutes(washing.start_time,washing.end_time,true),50);
+assert.throws(()=>validateEntry({...washing,driver:''}),/motorista/);
+assert.throws(()=>validateEntry({...washing,overnight:false}),/horários/);
+assert.throws(()=>validateEntry({...washing,start_time:null}),/dois horários/);
+assert.throws(()=>validateEntry({...washing,service_date:'2026-02-30'}),/data válida/);
+assert.throws(()=>validateEntry({...demand,status:'completed',service_date:'2099-01-01'}),/futura/);
+assert.deepEqual(monthRange('2028-02'),['2028-02-01','2028-02-29']);
+assert.deepEqual(monthRange('2026-12'),['2026-12-01','2026-12-31']);assert.throws(()=>monthRange('2026-13'));
+const sweep={id:'sweep',date:'2026-10-01',created:'2026-10-01T09:00:00Z',name:'José',team:'Padrão 1',street:'Rua',neighborhood:'Centro',segment:'A → B',notes:'nota',photos:[],author_id:'sweeper'};
+const csv=monthlyCsv([demand,washing],[sweep]),parsed=parseCsv(csv);
+assert.equal(csv.charCodeAt(0),0xfeff);assert.equal(parsed.length,4);assert.equal(csvHeaders.length,34);assert.ok(parsed.every(r=>r.length===34));
+const d=parsed.find(r=>r[1]==='demand'),w=parsed.find(r=>r[1]==='washing'),s=parsed.find(r=>r[1]==='sweep');
+assert.equal(d[5],"'=1+1");assert.equal(d[7],'Rua; "Centro"\nEntrada');assert.equal(d[28],'Pendente; retorno');assert.equal(w[23],'0');assert.equal(w[24],'0');assert.equal(w[22],'50');assert.equal(s[28],'nota');assert.equal(s[33],'sweeper');
+for(const prefix of ['=','+','-','@',' \t='])assert.equal(parseCsv(monthlyCsv([{...demand,title:prefix+'SUM(A1)'}]))[1][5],"'"+prefix+'SUM(A1)');
+console.log('Operations CSV and validation checks passed.');

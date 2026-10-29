@@ -22,6 +22,16 @@ A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas sen
 
 O bucket aceita apenas JPEG até 1,2 MB por foto. Se uma tentativa de envio falhar, podem permanecer fotos de um registro ainda não concluído; uma nova tentativa reutiliza os mesmos caminhos. A limpeza de órfãos deve ser administrada pelo responsável. Não existe promessa de armazenamento ilimitado ou de custo zero em qualquer volume.
 
+## Demandas, lavagem com pipas e CSV mensal
+
+A página principal agora oferece **Demandas**, **Lavagem · Pipas**, **Relatórios e CSV** e acesso à varrição existente. Cada atendimento tem situação (programada, em andamento, concluída, pendente ou cancelada), prioridade, data do serviço, local, responsável, equipe, efetivo, horários, descrição, observações e até três fotos opcionais. Lavagens acrescentam caminhão, motorista, ajudantes, tipo de local, litros e reabastecimentos informados. Campos numéricos vazios significam não informado; zero é preservado.
+
+Em **Relatórios e CSV**, escolha o mês e use **CSV completo do mês**. A exportação consulta novamente todos os registros autorizados de `operational_entries` e `operations`, incluindo todas as situações, sem aplicar a busca da lista. O arquivo tem 34 colunas, UTF-8 com BOM, separador ponto e vírgula e proteção contra fórmulas em textos. O mês é definido pela data do serviço, não pelo cadastro ou pela conclusão. Fotos são representadas por caminhos privados e não são incorporadas ao CSV. **Arquivar varrição** continua exclusivo para os relatórios e fotos do módulo de varrição anterior.
+
+A conta administrativa existente consulta e edita todos os novos atendimentos. Colaboradores consultam e editam apenas os próprios. Autor, identidade e evidências ficam preservados; edições usam `updated_at` para rejeitar alterações concorrentes. Cancelar mantém o registro no fechamento. Consultas usam paginação por ID, sem limite global de 1.000 linhas. O CSV é gerado sob demanda, sem entrega automática agendada.
+
+O esquema aditivo está em `supabase/operational_entries.sql`, aplicado pelo MCP com o nome `add_operational_entries_demands_washing`. Não reaplique o arquivo no projeto existente. Verificações do formato e validação: `node pages/field-model.test.mjs`.
+
 ## Funcionalidades
 
 Registro em etapas Local → Fotos → Conferir; até três fotos por operação; redução das imagens no celular; salvamento em banco D1 e arquivos R2; histórico e filtros diários, semanais, mensais e anuais; exportação CSV; impressão para salvar PDF. Ajuste de rolagem durante o uso do teclado virtual.

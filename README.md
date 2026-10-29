@@ -1,3 +1,36 @@
+# Piloto de Lavagens — duas equipes de pipa
+
+O endereço principal permanece https://gabrielcabteo.github.io/suma-operacoes/ . A entrada foi concentrada em Lavagens; os módulos anteriores e seus dados permanecem no código e no banco.
+
+## Começar o piloto
+
+1. Entre com a conta administrativa existente e abra **Administração**.
+2. Cadastre motorista, caminhão e ajudantes das duas equipes. As equipes começam como Pipa 1 e Pipa 2; nenhum colaborador foi vinculado por suposição.
+3. Os colaboradores criam/acessam suas contas e confirmam o e-mail. Vincule cada conta à equipe correta em **Contas dos pipeiros**.
+4. Em **Programação**, escolha o mês. Use **Importar Excel** (.xlsx até 5 MB), selecione aba/títulos/colunas, revise e distribua os atendimentos. A prévia permite corrigir e desmarcar linhas. Pode cadastrar um local manualmente para testar.
+5. Confira e libere a programação. Cada equipe vê apenas seus serviços publicados.
+6. O pipeiro usa **Iniciar**, adiciona evidências e usa **Finalizar**, ou informa uma ocorrência. Conclusão/parcial exigem foto depois ou justificativa com pelo menos 10 caracteres. Água e reabastecimentos são opcionais.
+7. Em **Resumo e CSV**, baixe somente as lavagens. O CSV identifica data programada e data executada e inclui pendências, cancelamentos, autoria, quantitativos e caminhos privados das fotos.
+
+## Dados e proteção
+
+A extensão aditiva está em `supabase/pipa_pilot.sql`; o acesso para iniciar serviços programados é ajustado por `pipa_start_authorization.sql` e `pipa_start_record_check.sql`. Políticas de RLS limitam cada equipe, o administrador conserva a visão geral e o histórico é somente leitura. Reimportações preservam atendimentos iniciados. Referências estáveis do Excel permitem reconhecer revisões; sem referência, a identidade é dia/local/equipe. Linhas omitidas numa revisão não são apagadas.
+
+Rascunhos e fotos em preparação são mantidos em IndexedDB por conta/aparelho. Só envios explicitamente confirmados pelo usuário entram na fila. A fila usa identificadores e controle de versão para evitar repetição e sobrescrita concorrente. Envie com conexão; após fechar a página, reabra o site com internet. Isso não é um aplicativo totalmente offline e dados locais podem ser removidos pelo navegador ou pelo usuário.
+
+## Localização
+
+O GPS guarda coordenadas, precisão e horário no banco existente. O endereço vem da programação ou pode ser sugerido por um atendimento anterior a até 50 m, com precisão adequada e conferência manual. Não há consulta automática a provedor externo nem endpoint de geocodificação publicado. A configuração proposta de Photon foi bloqueada pela revisão automática e depende de autorização específica para enviar coordenadas ao provedor. As funções internas de cache criadas na primeira migração não são usadas pelo aplicativo; `pipa_location_local.sql` registra a limpeza opcional, ainda pendente se não aplicada. Não reaplique os SQLs no projeto existente.
+
+## Validação
+
+`pnpm check:pipas` testa um XLSX real em memória, datas formatadas, distribuição das duas equipes, datas inválidas, campos obrigatórios, evidência/justificativa, CSV com zeros/acentos/aspas/quebras de linha e sugestão local de endereço. `pnpm build:pages` executa os testes e compila a interface. Testes transacionais no banco verificam publicação, equipe, importação administrativa, início, conclusão, repetição, concorrência, auditoria e preservação em revisão, com rollback completo.
+
+---
+
+
+## Referência da versão anterior
+
 # SUMA Brasil — Operações
 
 Sistema piloto para registrar varrição de vias públicas em Ribeirão Preto. Interface em português, pensada para celular vertical, com identidade visual SUMA Brasil.
@@ -106,3 +139,4 @@ No Supabase, abra Authentication → Users, selecione o usuário e use Ban user.
 A tela de entrada inclui **Criar conta** e **Esqueci minha senha**. Depois do login, **Minha conta** permite editar o nome e alterar a senha exclusiva do SUMA Operações. O e-mail é somente leitura e não há campo para elevar permissões. Novos usuários confirmados continuam entrando como colaboradores.
 
 Consulte [Cadastro e configuração da conta](documentation/account.md) para os fluxos de confirmação, recuperação e limites do envio de e-mails. Os testes são simulados; não foram enviados e-mails ou alteradas credenciais reais durante a implementação.
+

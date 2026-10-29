@@ -47,5 +47,15 @@ export const pipaClient:PipaClient={
  },
  async photos(paths){if(!paths.length)return [];const {data,error}=await db().storage.from('evidencias').createSignedUrls(paths,60);if(error)fail(error);if(!data||data.some(p=>!p.signedUrl))throw new PipaError('Atualize para abrir novamente as fotos.');return data.map(p=>p.signedUrl!);},
  async history(entity,id){const {data,error}=await db().from('pipa_audit').select('*').eq('entity',entity).eq('entity_id',id).order('id',{ascending:false}).limit(100);if(error)fail(error);return data as Audit[];},
- async reverse(){throw new PipaError('Coordenadas capturadas. Confira o endereço da programação ou informe o local do atendimento.');}
+ async reverse(latitude,longitude){
+  const {data,error}=await db().functions.invoke('pipa-location',{body:{latitude,longitude}});
+  if(error){
+   const response=(error as {context?:Response}).context;
+   if(response?.status===429)throw new PipaError('Coordenadas capturadas. Aguarde alguns segundos e toque novamente para consultar o endereço.');
+   if(response?.status===401||response?.status===403)throw new PipaError('Coordenadas capturadas. Entre novamente ou confira seu vínculo com a equipe para consultar o endereço.');
+   throw new PipaError('Coordenadas capturadas. A consulta de endereço não respondeu; confira ou informe o local manualmente.');
+  }
+  if(!data||typeof data.location!=='string'||!data.location.trim())throw new PipaError('Coordenadas capturadas. Endereço não encontrado; informe o local manualmente.');
+  return data as GeoResult;
+ }
 };

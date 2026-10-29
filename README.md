@@ -20,11 +20,15 @@ Rascunhos e fotos em preparação são mantidos em IndexedDB por conta/aparelho.
 
 ## Localização
 
-O GPS guarda coordenadas, precisão e horário no banco existente. O endereço vem da programação ou pode ser sugerido por um atendimento anterior a até 50 m, com precisão adequada e conferência manual. Não há consulta automática a provedor externo nem endpoint de geocodificação publicado. A configuração proposta de Photon foi bloqueada pela revisão automática e depende de autorização específica para enviar coordenadas ao provedor. As funções internas de cache criadas na primeira migração não são usadas pelo aplicativo; `pipa_location_local.sql` registra a limpeza opcional, ainda pendente se não aplicada. Não reaplique os SQLs no projeto existente.
+A consulta de rua e bairro pelo Photon/Komoot foi autorizada pelo responsável. Ao tocar em **Usar minha localização atual**, o navegador solicita a posição e o aplicativo envia somente as coordenadas para a função autenticada `pipa-location`, que consulta `https://photon.komoot.io/reverse`. Nomes, e-mails, fotos e observações não são encaminhados ao provedor. A tela informa o destino e exige conferência do endereço sugerido. O endereço já informado é preservado até o usuário aceitar a sugestão; campos vazios podem ser preenchidos automaticamente.
+
+O GPS guarda coordenadas, precisão e horário no banco existente. A função exige JWT válido e conta ativa de administrador ou vinculada a um pipa. O cache privado dura sete dias e o limitador global permite uma nova consulta a cada dois segundos. Sem resposta do provedor, as coordenadas permanecem no formulário, com opção de endereço manual ou de atendimento anterior próximo. Não há consulta periódica nem rastreamento em segundo plano.
+
+Fontes do endereço: Photon/Komoot e dados © OpenStreetMap, com crédito na tela. O código de autorização e cache está em `supabase/pipa_geocoding_authorized.sql`; os arquivos da função estão em `supabase/functions/pipa-location`. `pipa_location_local.sql` é apenas uma nota histórica e não deve remover o cache, agora em uso. Não reaplique os SQLs no projeto existente.
 
 ## Validação
 
-`pnpm check:pipas` testa um XLSX real em memória, datas formatadas, distribuição das duas equipes, datas inválidas, campos obrigatórios, evidência/justificativa, CSV com zeros/acentos/aspas/quebras de linha e sugestão local de endereço. `pnpm build:pages` executa os testes e compila a interface. Testes transacionais no banco verificam publicação, equipe, importação administrativa, início, conclusão, repetição, concorrência, auditoria e preservação em revisão, com rollback completo.
+`pnpm check:pipas` testa um XLSX real em memória, datas formatadas, distribuição das duas equipes, datas inválidas, campos obrigatórios, evidência/justificativa, CSV com zeros/acentos/aspas/quebras de linha e sugestão local de endereço. `pnpm check:location` verifica o handler de endereço (autenticação, CORS, cache, limite, respostas e falhas). `pnpm build:pages` executa os testes e compila a interface. Testes transacionais no banco verificam publicação, equipe, importação administrativa, início, conclusão, repetição, concorrência, auditoria e preservação em revisão, com rollback completo.
 
 ---
 

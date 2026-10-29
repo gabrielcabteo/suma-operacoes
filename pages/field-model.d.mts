@@ -1,0 +1,12 @@
+import type {EntryFields,FieldEntry,Module,Status} from './field-types';
+import type {Operation} from '../app/data-client';
+export const statusLabels:Record<Status,string>;
+export const priorityLabels:Record<EntryFields['priority'],string>;
+export const moduleLabels:Record<Module|'sweeping',string>;
+export function today():string;
+export function monthRange(month:string):readonly [string,string];
+export function blankEntry(kind:Module):EntryFields;
+export function elapsedMinutes(start:string|null,end:string|null,overnight?:boolean):number|null;
+export function validateEntry(fields:EntryFields):void;
+export const csvHeaders:string[];
+export function monthlyCsv(entries:FieldEntry[],sweeps?:Operation[]):string;

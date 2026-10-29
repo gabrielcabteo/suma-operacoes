@@ -33,5 +33,5 @@ export const fieldClient:FieldClient={
   if(error?.code==='23505'){const existing=await client.from('operational_entries').select('*').eq('id',id).single();failure(existing.error);if(existing.data)return existing.data as FieldEntry;}
   failure(error);if(!data)throw Error('Não foi possível confirmar o salvamento.');return data as FieldEntry;
  },
- async photoUrls(paths){if(!paths.length)return [];const {data,error}=await db().storage.from('evidencias').createSignedUrls(paths,60);if(error||!data||data.some(v=>!v.signedUrl))throw Error('Não foi possível abrir as fotos. Atualize e tente novamente.');return data.map(v=>v.signedUrl);}
+ async photoUrls(paths){if(!paths.length)return [];const {data,error}=await db().storage.from('evidencias').createSignedUrls(paths,60);if(error||!data||data.some(v=>!v.signedUrl))throw Error('Não foi possível abrir as fotos. Atualize e tente novamente.');return data.map(v=>v.signedUrl!);}
 };

@@ -1,0 +1,17 @@
+import type {Job,JobInput,Team,Visit,VisitForm,Snapshot,Row,ImportMapping,ImportRow,GeoResult} from './pipa-types';
+export const statusLabels:Record<string,string>;
+export const targets:string[];
+export function normalize(value:unknown):string;
+export function today():string;
+export function localTime(value:string|null):string;
+export function nearbyAddress(visits:Visit[],lat:number,lon:number):GeoResult|null;
+export function parseDate(value:unknown,month:string):string;
+export function jobKey(value:JobInput):string;
+export function validateJob(value:JobInput,month:string):string[];
+export function guessMapping(headers:unknown[]):ImportMapping;
+export function deriveImportRows(data:unknown[][],headerRow:number,mapping:ImportMapping,month:string,defaultTeam:string,teams:Team[]):ImportRow[];
+export function blankVisit(job:Job|null,team:Team,name:string):VisitForm;
+export function validateVisit(value:VisitForm,beforeCount?:number,afterCount?:number):void;
+export function snapshotRows(value:Snapshot,month:string):Row[];
+export const csvHeaders:string[];
+export function washingCsv(value:Snapshot,month:string):string;

@@ -1,0 +1,33 @@
+import {useEffect,useRef,useState,type ReactNode} from 'react';
+import {X} from 'lucide-react';
+import type {Audit,Job,JobInput,Team} from './pipa-types';
+import type {PipaClient} from './pipa-api';
+import {localTime,statusLabels,targets,today,validateJob} from './pipa-model.mjs';
+export function PipaModal({title,children,onClose,busy=false}:{title:string;children:ReactNode;onClose:()=>void;busy?:boolean}){
+ const dialog=useRef<HTMLDialogElement>(null);useEffect(()=>{const old=document.activeElement as HTMLElement|null;dialog.current?.showModal();return()=>{dialog.current?.close();old?.focus()}},[]);
+ return <dialog className="fo-dialog pp-dialog" ref={dialog} aria-label={title} onCancel={e=>{e.preventDefault();if(!busy)onClose()}}><div className="fo-dialog-head"><div><span className="fo-overline">LAVAGENS · SUMA BRASIL</span><h2>{title}</h2></div><button type="button" aria-label="Fechar" disabled={busy} onClick={onClose}><X size={21}/></button></div>{children}</dialog>;
+}
+export function JobDialog({job,teams,month,client,onClose,onSaved}:{job:Job|null;teams:Team[];month:string;client:PipaClient;onClose:()=>void;onSaved:()=>void}){
+ const [f,setF]=useState<JobInput>(()=>job?{...job}:{team_id:teams[0]?.id||'pipa-1',service_date:month===today().slice(0,7)?today():month+'-01',sequence:1,title:'',location:'',neighborhood:'',target:'Outro',notes:'',source_ref:'',priority:'normal'});
+ const [published,setPublished]=useState(job?.published||false),[cancelled,setCancelled]=useState(job?.cancelled||false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[dirty,setDirty]=useState(false);
+ const update=<K extends keyof JobInput>(k:K,v:JobInput[K])=>{setF(f=>({...f,[k]:v}));setDirty(true)};
+ const close=()=>{if(!busy&&(!dirty||window.confirm('Descartar as alterações da programação?')))onClose()};
+ return <PipaModal title={job?'Editar programação':'Novo serviço programado'} onClose={close} busy={busy}><form onSubmit={async e=>{e.preventDefault();setError('');const errors=validateJob(f,month);if(errors.length){setError(errors.join('. '));return;}setBusy(true);try{if(job)await client.updateJob({...job,...f,published,cancelled});else await client.importJobs([f],'Cadastro manual',published);onSaved()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}}>
+  <fieldset className="fo-fieldset" disabled={busy}><p className="fo-form-intro">Um serviço por local, data e equipe. Atendimentos já iniciados ficam preservados.</p><div className="fo-form-grid">
+  <label>Data *<input type="date" required value={f.service_date} onChange={e=>update('service_date',e.target.value)}/></label><label>Equipe *<select value={f.team_id} onChange={e=>update('team_id',e.target.value)}>{teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+  <label>Serviço *<input required maxLength={160} value={f.title} placeholder="Ex.: Lavagem da praça" onChange={e=>update('title',e.target.value)}/></label><label>Sequência do dia<input type="number" min={0} max={10000} required value={f.sequence} onChange={e=>update('sequence',Number(e.target.value))}/></label>
+  <label>Local / endereço *<input required maxLength={200} value={f.location} onChange={e=>update('location',e.target.value)}/></label><label>Bairro<input maxLength={120} value={f.neighborhood} onChange={e=>update('neighborhood',e.target.value)}/></label>
+  <label>Tipo de local<select value={f.target} onChange={e=>update('target',e.target.value)}>{targets.map(v=><option key={v}>{v}</option>)}</select></label><label>Prioridade<select value={f.priority} onChange={e=>update('priority',e.target.value)}><option value="normal">Normal</option><option value="high">Alta</option><option value="urgent">Urgente</option></select></label>
+  </div><label>Orientações<textarea rows={3} maxLength={2000} value={f.notes} onChange={e=>update('notes',e.target.value)}/></label>
+  <label className="fo-checkbox"><input type="checkbox" checked={published} onChange={e=>{setPublished(e.target.checked);setDirty(true)}}/>Liberar para os pipeiros visualizarem</label>
+  {job&&<label className="fo-checkbox"><input type="checkbox" checked={cancelled} onChange={e=>{setCancelled(e.target.checked);setDirty(true)}}/>Cancelar este serviço, mantendo o registro</label>}</fieldset>
+  {error&&<p className="fo-alert" role="alert">{error}</p>}<div className="fo-editor-actions"><button type="button" disabled={busy} onClick={close}>Voltar</button><button className="fo-primary" disabled={busy}>{busy?'Salvando…':'Salvar programação'}</button></div>
+ </form></PipaModal>;
+}
+const names:Record<string,string>={status:'Situação',service_date:'Data do serviço',team_id:'Equipe',location:'Local',title:'Serviço',notes:'Observações',driver:'Motorista',vehicle:'Caminhão',helpers:'Ajudantes',responsible:'Responsável',started_at:'Início',finished_at:'Término',water_liters:'Água (L)',refills:'Reabastecimentos',published:'Liberada',cancelled:'Cancelada',sequence:'Sequência',photos_before:'Fotos antes',photos_after:'Fotos depois',photo_justification:'Justificativa sem foto',name:'Nome da equipe'};
+function value(k:string,v:unknown){if(v===null||v===undefined||v==='')return 'Não informado';if(Array.isArray(v))return v.length+' foto(s)';if(typeof v==='boolean')return v?'Sim':'Não';if(k==='status')return statusLabels[String(v)]||String(v);if(k.endsWith('_at'))return localTime(String(v));return String(v);}
+export function HistoryDialog({entity,id,client,onClose}:{entity:string;id:string;client:PipaClient;onClose:()=>void}){
+ const [rows,setRows]=useState<Audit[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true);
+ useEffect(()=>{let active=true;client.history(entity,id).then(r=>active&&setRows(r)).catch(e=>active&&setError(e.message)).finally(()=>active&&setLoading(false));return()=>{active=false}},[client,entity,id]);
+ return <PipaModal title="Histórico de alterações" onClose={onClose}><div className="pp-modal-content">{error&&<p className="fo-alert">{error}</p>}{loading?<p role="status">Consultando histórico…</p>:!rows.length?<p>Sem alterações registradas.</p>:rows.map(r=><article className="pp-audit" key={r.id}><strong>{r.action==='INSERT'?'Registro criado':r.action==='DELETE'?'Vínculo removido':'Registro atualizado'}</strong><p>{r.actor_name} · {localTime(r.occurred_at)}</p><dl>{Object.entries(names).filter(([k])=>r.after_data&&JSON.stringify(r.before_data?.[k])!==JSON.stringify(r.after_data[k])).map(([k,label])=><div key={k}><dt>{label}</dt><dd>{r.before_data&&<span>{value(k,r.before_data[k])} → </span>}{value(k,r.after_data?.[k])}</dd></div>)}</dl></article>)}{rows.length===100&&<p className="fo-muted">Exibindo as 100 alterações mais recentes.</p>}</div></PipaModal>;
+}

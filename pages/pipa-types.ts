@@ -1,0 +1,16 @@
+export type Team={id:string;name:string;driver:string;vehicle:string;helpers:string;updated_at:string};
+export type Job={id:string;team_id:string;service_date:string;sequence:number;title:string;location:string;neighborhood:string;target:string;notes:string;priority:string;source_ref:string;source_file:string;published:boolean;cancelled:boolean;author_id:string;created_at:string;updated_at:string};
+export type JobInput=Pick<Job,'team_id'|'service_date'|'sequence'|'title'|'location'|'neighborhood'|'target'|'notes'|'priority'|'source_ref'>;
+export type VisitStatus='in_progress'|'completed'|'partial'|'pending'|'cancelled';
+export type Visit={id:string;job_id:string|null;team_id:string;author_id:string;updated_by:string;mutation_id:string;service_date:string;title:string;location:string;neighborhood:string;target:string;driver:string;vehicle:string;helpers:string;responsible:string;headcount:number|null;status:VisitStatus;started_at:string|null;finished_at:string|null;water_liters:number|null;refills:number|null;notes:string;photo_justification:string;photos_before:string[];photos_after:string[];latitude:number|null;longitude:number|null;accuracy_m:number|null;location_captured_at:string|null;created_at:string;updated_at:string};
+export type VisitForm=Omit<Visit,'author_id'|'updated_by'|'mutation_id'|'created_at'|'updated_at'>;
+export type Snapshot={user_id:string;admin:boolean;teams:Team[];members:{user_id:string;team_id:string}[];jobs:Job[];visits:Visit[]};
+export type Account={user_id:string;name:string;email:string;role:string;team_id:string|null};
+export type Audit={id:number;entity:string;entity_id:string;team_id:string|null;action:string;actor_id:string;actor_name:string;occurred_at:string;before_data:Record<string,unknown>|null;after_data:Record<string,unknown>|null};
+export type LocalPhoto={id:string;phase:'before'|'after';blob:Blob};
+export type Draft={key:string;user_id:string;id:string;form:VisitForm;photos:LocalPhoto[];expected:string|null;mutation:string;previous:string[];state:'draft'|'pending'|'error';error:string;modified:number};
+export type ImportRow={line:number;selected:boolean;values:JobInput};
+export type ImportMapping=Record<'date'|'location'|'title'|'team'|'neighborhood'|'target'|'sequence'|'notes'|'reference',number>;
+export type ImportResult={created:number;updated:number;protected:number};
+export type GeoResult={location:string;neighborhood:string;city:string;attribution:string};
+export type Row={id:string;job:Job|null;visit:Visit|null;date:string;status:string};

@@ -14,6 +14,8 @@ O endereço principal permanece https://gabrielcabteo.github.io/suma-operacoes/ 
 
 ## Dados e proteção
 
+A sessão permanece salva no mesmo navegador/aparelho ao fechar e reabrir o site, com renovação automática pelo Supabase. **Sair / trocar conta** encerra a sessão desse navegador e atualiza as abas abertas. O login anterior por aba é migrado ao abrir a atualização. Não são armazenadas senhas. A validação do usuário no servidor e de suas permissões continua obrigatória; falhas temporárias de conexão oferecem nova tentativa sem apagar o acesso salvo. Uma troca de conta descarta a tela e os dados em memória da conta anterior.
+
 A extensão aditiva está em `supabase/pipa_pilot.sql`; o acesso para iniciar serviços programados é ajustado por `pipa_start_authorization.sql` e `pipa_start_record_check.sql`. Políticas de RLS limitam cada equipe, o administrador conserva a visão geral e o histórico é somente leitura. Reimportações preservam atendimentos iniciados. Referências estáveis do Excel permitem reconhecer revisões; sem referência, a identidade é dia/local/equipe. Linhas omitidas numa revisão não são apagadas.
 
 Rascunhos e fotos em preparação são mantidos em IndexedDB por conta/aparelho. Só envios explicitamente confirmados pelo usuário entram na fila. A fila usa identificadores e controle de versão para evitar repetição e sobrescrita concorrente. Envie com conexão; após fechar a página, reabra o site com internet. Isso não é um aplicativo totalmente offline e dados locais podem ser removidos pelo navegador ou pelo usuário.
@@ -28,7 +30,7 @@ Fontes do endereço: Photon/Komoot e dados © OpenStreetMap, com crédito na tel
 
 ## Validação
 
-`pnpm check:pipas` testa um XLSX real em memória, datas formatadas, distribuição das duas equipes, datas inválidas, campos obrigatórios, evidência/justificativa, CSV com zeros/acentos/aspas/quebras de linha e sugestão local de endereço. `pnpm check:location` verifica o handler de endereço (autenticação, CORS, cache, limite, respostas e falhas). `pnpm build:pages` executa os testes e compila a interface. Testes transacionais no banco verificam publicação, equipe, importação administrativa, início, conclusão, repetição, concorrência, auditoria e preservação em revisão, com rollback completo.
+`pnpm check:pipas` testa um XLSX real em memória, datas formatadas, distribuição das duas equipes, datas inválidas, campos obrigatórios, evidência/justificativa, CSV com zeros/acentos/aspas/quebras de linha e sugestão local de endereço. `pnpm check:location` verifica o handler de endereço (autenticação, CORS, cache, limite, respostas e falhas). `pnpm check:auth` verifica persistência, migração, saída sem ressurreição de tokens antigos, validade do PKCE, falhas de conexão e restauração/renovação com o SDK real em um servidor simulado. `pnpm build:pages` executa os testes e compila a interface. Testes transacionais no banco verificam publicação, equipe, importação administrativa, início, conclusão, repetição, concorrência, auditoria e preservação em revisão, com rollback completo.
 
 ---
 
@@ -55,7 +57,7 @@ Sistema piloto para registrar varrição de vias públicas em Ribeirão Preto. I
 4. Alterações em `pages/supabase-config.json` disparam o workflow **pages build and deployment**. Sem configuração válida, o frontend não permite salvar.
 5. Valide login, foto, envio e relatórios com usuários autorizados. A política de retenção, backup e monitoramento das franquias precisa ser definida antes de ampliar o uso.
 
-A sessão usa sessionStorage por aba e pode ser renovada. Não são gravadas senhas no navegador. As fotos recebem links assinados de 60 segundos; atualize a consulta caso expirem. Contas bloqueadas não podem fazer novas consultas, gerar novos links ou enviar dados. Links já emitidos permanecem válidos até expirar; conteúdo já baixado não pode ser recolhido.
+A sessão usa localStorage no mesmo navegador, com renovação automática e saída manual. Não são gravadas senhas no navegador. As fotos recebem links assinados de 60 segundos; atualize a consulta caso expirem. Contas bloqueadas não podem fazer novas consultas, gerar novos links ou enviar dados. Links já emitidos permanecem válidos até expirar; conteúdo já baixado não pode ser recolhido.
 
 O bucket aceita apenas JPEG até 1,2 MB por foto. Se uma tentativa de envio falhar, podem permanecer fotos de um registro ainda não concluído; uma nova tentativa reutiliza os mesmos caminhos. A limpeza de órfãos deve ser administrada pelo responsável. Não existe promessa de armazenamento ilimitado ou de custo zero em qualquer volume.
 

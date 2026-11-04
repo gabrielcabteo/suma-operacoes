@@ -33,7 +33,7 @@ function visitPhotos(v:Visit){return [...v.photos_before.map(path=>({path,captio
 export async function createWashingDocx(snapshot:Snapshot,month:string,client:PipaClient,onProgress?:(message:string)=>void):Promise<Blob>{
  if(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Escolha um mês válido.');
  const visits=snapshot.visits.filter(v=>v.service_date.startsWith(month)&&v.status!=='cancelled').sort((a,b)=>a.service_date.localeCompare(b.service_date)||(a.started_at||a.created_at).localeCompare(b.started_at||b.created_at)||a.id.localeCompare(b.id));
- if(!visits.length)throw Error('Não há atendimentos concluídos ou parciais neste mês para gerar o relatório.');
+ if(!visits.length)throw Error('Não há atendimentos registrados neste mês para gerar o relatório.');
  const groups:{date:string;location:string;visits:Visit[]}[]=[];
  const groupMap=new Map<string,{date:string;location:string;visits:Visit[]}>();
  for(const v of visits){const location=v.location.trim()||'Local não informado';const key=v.service_date+'|'+location.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');let group=groupMap.get(key);if(!group){group={date:v.service_date,location,visits:[]};groupMap.set(key,group);groups.push(group);}group.visits.push(v);}

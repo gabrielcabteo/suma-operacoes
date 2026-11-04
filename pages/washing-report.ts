@@ -77,6 +77,7 @@ export async function createWashingDocx(snapshot:Snapshot,month:string,client:Pi
  const rootRels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
  const files=[{name:'[Content_Types].xml',data:enc.encode(contentTypes)},{name:'_rels/.rels',data:enc.encode(rootRels)},{name:'word/document.xml',data:enc.encode(documentXml)},{name:'word/styles.xml',data:enc.encode(styles)},{name:'word/_rels/document.xml.rels',data:enc.encode('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+rels.join('')+'</Relationships>')},...media];
  onProgress?.('Montando documento Word…');
- return makeZip(files);
+ const archive=makeZip(files);
+ return new Blob([archive],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
 }
 export function downloadWashingDocx(blob:Blob,month:string){download(blob,'relatorio-lavagem-'+month+'.docx');}

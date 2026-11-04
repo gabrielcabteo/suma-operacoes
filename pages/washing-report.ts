@@ -43,10 +43,11 @@ export async function createWashingDocx(snapshot:Snapshot,month:string,client:Pi
   const batch=entries.slice(start,start+40),paths=batch.map(p=>p.path);
   const urls=await client.photos(paths);
   if(urls.length!==batch.length)throw Error('Não foi possível localizar todas as fotografias do relatório.');
+  const responses=await Promise.all(urls.map(url=>fetch(url)));
+  if(responses.some(response=>!response.ok))throw Error('Falha ao baixar uma fotografia. Atualize os registros e tente novamente.');
+  const buffers=await Promise.all(responses.map(response=>response.arrayBuffer()));
   for(let i=0;i<batch.length;i++){
-   const response=await fetch(urls[i]);
-   if(!response.ok)throw Error('Falha ao baixar uma fotografia. Atualize os registros e tente novamente.');
-   downloaded.set(batch[i].path,new Uint8Array(await response.arrayBuffer()));
+   downloaded.set(batch[i].path,new Uint8Array(buffers[i]));
    onProgress?.('Baixando fotografias: '+(start+i+1)+' de '+entries.length);
   }
  }

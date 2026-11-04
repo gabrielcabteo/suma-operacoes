@@ -34,7 +34,10 @@ export async function createWashingDocx(snapshot:Snapshot,month:string,client:Pi
  if(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Escolha um mês válido.');
  const visits=snapshot.visits.filter(v=>v.service_date.startsWith(month)&&v.status!=='cancelled').sort((a,b)=>a.service_date.localeCompare(b.service_date)||(a.started_at||a.created_at).localeCompare(b.started_at||b.created_at)||a.id.localeCompare(b.id));
  if(!visits.length)throw Error('Não há atendimentos concluídos ou parciais neste mês para gerar o relatório.');
- const entries=visits.flatMap(v=>visitPhotos(v).map(p=>({...p,visit:v})));
+ const groups:{date:string;location:string;visits:Visit[]}[]=[];
+ const groupMap=new Map<string,{date:string;location:string;visits:Visit[]}>();
+ for(const v of visits){const location=v.location.trim()||'Local não informado';const key=v.service_date+'|'+location.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');let group=groupMap.get(key);if(!group){group={date:v.service_date,location,visits:[]};groupMap.set(key,group);groups.push(group);}group.visits.push(v);}
+ const entries=groups.flatMap(g=>g.visits.flatMap(v=>visitPhotos(v).map(p=>({...p,visit:v}))));
  const downloaded=new Map<string,Uint8Array>();
  for(let start=0;start<entries.length;start+=40){
   const batch=entries.slice(start,start+40),paths=batch.map(p=>p.path);
@@ -52,11 +55,11 @@ export async function createWashingDocx(snapshot:Snapshot,month:string,client:Pi
  let imageId=0;
  const body=[paragraph('SUMA BRASIL','Title'),paragraph('RELATÓRIO MENSAL DE LAVAGEM','Subtitle'),paragraph(new Date(month+'-02T12:00:00Z').toLocaleDateString('pt-BR',{month:'long',year:'numeric',timeZone:'America/Sao_Paulo'}),'Subtitle')];
  let currentDate='';
- for(const v of visits){
-  if(v.service_date!==currentDate){currentDate=v.service_date;body.push(paragraph(dateLabel(currentDate),'Heading1'));}
-  body.push(paragraph(v.location.trim(),'Heading2'));
-  const photos=visitPhotos(v);
-  if(!photos.length){body.push(paragraph('Nenhuma fotografia registrada neste atendimento.'));continue;}
+ for(const group of groups){
+  if(group.date!==currentDate){currentDate=group.date;body.push(paragraph(dateLabel(currentDate),'Heading1'));}
+  body.push(paragraph(group.location,'Heading2'));
+  const photos=group.visits.flatMap(v=>visitPhotos(v));
+  if(!photos.length){body.push(paragraph('Nenhuma fotografia registrada neste local nesta data.'));continue;}
   for(const p of photos){
    imageId++;
    const rel='rIdImage'+imageId,name='fotografia-'+String(imageId).padStart(4,'0')+'.jpg';

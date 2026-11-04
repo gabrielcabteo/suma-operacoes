@@ -32,7 +32,7 @@ function visitPhotos(v:Visit){return [...v.photos_before.map(path=>({path,captio
 
 export async function createWashingDocx(snapshot:Snapshot,month:string,client:PipaClient,onProgress?:(message:string)=>void):Promise<Blob>{
  if(!/^\\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Escolha um mês válido.');
- const visits=snapshot.visits.filter(v=>v.service_date.startsWith(month)&&['completed','partial'].includes(v.status)).sort((a,b)=>a.service_date.localeCompare(b.service_date)||(a.started_at||a.created_at).localeCompare(b.started_at||b.created_at)||a.id.localeCompare(b.id));
+ const visits=snapshot.visits.filter(v=>v.service_date.startsWith(month)&&v.status!=='cancelled').sort((a,b)=>a.service_date.localeCompare(b.service_date)||(a.started_at||a.created_at).localeCompare(b.started_at||b.created_at)||a.id.localeCompare(b.id));
  if(!visits.length)throw Error('Não há atendimentos concluídos ou parciais neste mês para gerar o relatório.');
  const entries=visits.flatMap(v=>visitPhotos(v).map(p=>({...p,visit:v})));
  const downloaded=new Map<string,Uint8Array>();

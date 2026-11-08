@@ -33,10 +33,11 @@ export function validateJob(j,month){
  if(!Number.isInteger(j.sequence)||j.sequence<0||j.sequence>10000)errors.push('Confira a sequência');
  if(!targets.includes(j.target))errors.push('Confira o tipo de local');
  if(j.notes.length>2000||j.neighborhood.length>120||j.source_ref.length>120)errors.push('Há um campo acima do tamanho permitido');
+ if(j.maps_url.length>2000||j.maps_url&&!/^https:\/\/(maps\.app\.goo\.gl\/|goo\.gl\/maps\/|(www\.)?google\.[a-z.]+\/maps\/)/i.test(j.maps_url))errors.push('Informe um link válido do Google Maps (https://maps.app.goo.gl/...).');
  return errors;
 }
 export function guessMapping(headers){
- const aliases={date:['data','dia','data do servico','data lavagem'],location:['local','endereco','localidade','logradouro','local de lavagem','rua'],title:['servico','titulo','demanda','descricao'],team:['equipe','pipa','caminhao','motorista'],neighborhood:['bairro'],target:['tipo','tipo de local'],sequence:['sequencia','ordem','rota'],notes:['observacoes','observacao','orientacoes','obs'],reference:['id','codigo','referencia','protocolo']};
+ const aliases={date:['data','dia','data do servico','data lavagem'],location:['local','endereco','localidade','logradouro','local de lavagem','rua'],title:['servico','titulo','demanda','descricao'],team:['equipe','pipa','caminhao','motorista'],neighborhood:['bairro'],target:['tipo','tipo de local'],sequence:['sequencia','ordem','rota'],notes:['observacoes','observacao','orientacoes','obs'],reference:['id','codigo','referencia','protocolo'],maps:['link google maps','google maps','maps','link do maps','url maps','link mapa']};
  return Object.fromEntries(Object.entries(aliases).map(([k,a])=>[k,headers.findIndex(h=>a.includes(normalize(h)))]));
 }
 export function deriveImportRows(data,headerRow,mapping,month,defaultTeam,teams){
@@ -50,7 +51,7 @@ export function deriveImportRows(data,headerRow,mapping,month,defaultTeam,teams)
   if(!team&&/(pipa|equipe)\s*2\b/.test(teamValue))team='pipa-2';
   team=team||defaultTeam;
   const location=text(get('location')),rawTarget=normalize(get('target')||location),target=rawTarget.includes('feira')?'Feira livre':rawTarget.includes('praca')?'Praça':rawTarget.includes('parque')?'Parque':/via|rua|avenida/.test(rawTarget)?'Via pública':'Outro';
-  for(const assigned of both?['pipa-1','pipa-2']:[team])result.push({line:i+1,selected:true,values:{service_date:parseDate(get('date'),month),location,title:text(get('title'))||location,team_id:assigned||'',neighborhood:text(get('neighborhood')),target,sequence:get('sequence')===null||get('sequence')===''?result.length+1:Number(get('sequence')),notes:text(get('notes')),source_ref:text(get('reference'))+(both&&get('reference')?'#'+assigned:''),priority:'normal'}});
+  for(const assigned of both?['pipa-1','pipa-2']:[team])result.push({line:i+1,selected:true,values:{service_date:parseDate(get('date'),month),location,title:text(get('title'))||location,team_id:assigned||'',neighborhood:text(get('neighborhood')),target,sequence:get('sequence')===null||get('sequence')===''?result.length+1:Number(get('sequence')),notes:text(get('notes')),source_ref:text(get('reference'))+(both&&get('reference')?'#'+assigned:''),maps_url:text(get('maps')),priority:'normal'}});
  }
  return result;
 }

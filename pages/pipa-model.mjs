@@ -1,4 +1,4 @@
-export const statusLabels={planned:'Programada',in_progress:'Em andamento',completed:'Concluída',partial:'Parcial',pending:'Pendente',cancelled:'Cancelada',draft:'Não liberada'};
+export const statusLabels={planned:'Programada',in_progress:'Em andamento',completed:'Concluída',partial:'Parcial',pending:'Pendente',cancelled:'Cancelada',draft:'Não liberada',overdue:'Atrasado',rescheduled:'Reprogramado'};
 export const targets=['Praça','Parque','Feira livre','Via pública','Outro'];
 export const normalize=v=>String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
 export const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
@@ -42,6 +42,7 @@ export function guessMapping(headers){
 }
 export function deriveImportRows(data,headerRow,mapping,month,defaultTeam,teams){
  const result=[];const text=v=>String(v??'').trim();
+ const perTeam={};
  for(let i=headerRow;i<data.length;i++){
   const row=data[i];if(row.every(v=>v===null||v===undefined||v===''))continue;
   const get=k=>mapping[k]>=0?row[mapping[k]]:null;
@@ -51,7 +52,7 @@ export function deriveImportRows(data,headerRow,mapping,month,defaultTeam,teams)
   if(!team&&/(pipa|equipe)\s*2\b/.test(teamValue))team='pipa-2';
   team=team||defaultTeam;
   const location=text(get('location')),rawTarget=normalize(get('target')||location),target=rawTarget.includes('feira')?'Feira livre':rawTarget.includes('praca')?'Praça':rawTarget.includes('parque')?'Parque':/via|rua|avenida/.test(rawTarget)?'Via pública':'Outro';
-  for(const assigned of both?['pipa-1','pipa-2']:[team])result.push({line:i+1,selected:true,values:{service_date:parseDate(get('date'),month),location,title:text(get('title'))||location,team_id:assigned||'',neighborhood:text(get('neighborhood')),target,sequence:get('sequence')===null||get('sequence')===''?result.length+1:Number(get('sequence')),notes:text(get('notes')),source_ref:text(get('reference'))+(both&&get('reference')?'#'+assigned:''),maps_url:text(get('maps')),priority:'normal'}});
+  for(const assigned of both?['pipa-1','pipa-2']:[team])result.push({line:i+1,selected:true,values:{service_date:parseDate(get('date'),month),location,title:text(get('title'))||location,team_id:assigned||'',neighborhood:text(get('neighborhood')),target,sequence:get('sequence')===null||get('sequence')===''?(perTeam[assigned||'']=(perTeam[assigned||'']||0)+1):Number(get('sequence')),notes:text(get('notes')),source_ref:text(get('reference'))+(both&&get('reference')?'#'+assigned:''),maps_url:text(get('maps')),priority:'normal'}});
  }
  return result;
 }
@@ -75,15 +76,35 @@ export function validateVisit(f,beforeCount=f.photos_before.length,afterCount=f.
  for(const [k,max,min] of [['water_liters',1000000,0],['refills',100,0],['headcount',300,1]])if(f[k]!==null&&(!Number.isInteger(f[k])||f[k]<min||f[k]>max))throw Error('Confira os quantitativos informados.');
  if((f.latitude===null)!==(f.longitude===null)||f.latitude!==null&&(!Number.isFinite(f.latitude)||Math.abs(f.latitude)>90||!Number.isFinite(f.longitude)||Math.abs(f.longitude)>180))throw Error('Coordenadas inválidas. Capture a localização novamente.');
 }
-export function snapshotRows(s,month){
- const byJob=new Map(s.visits.filter(v=>v.job_id).map(v=>[v.job_id,v]));
- const out=s.jobs.map(j=>({id:'job-'+j.id,job:j,visit:byJob.get(j.id)||null,date:j.service_date,status:byJob.get(j.id)?.status||(j.cancelled?'cancelled':j.published?'planned':'draft')}));
+// Situação exibida: a do atendimento; sem atendimento, a da programação. Um serviço com retorno ativo
+// e sem conclusão aparece como Reprogramado; um serviço liberado e vencido sem atendimento, como Atrasado.
+export function rowStatus(j,v,returned,now=today()){
+ if(j&&!j.cancelled&&returned?.has(j.id)&&(!v||['in_progress','partial','pending'].includes(v.status)))return 'rescheduled';
+ if(v)return v.status;
+ if(!j)return 'pending';
+ if(j.cancelled)return 'cancelled';
+ if(!j.published)return 'draft';
+ return j.service_date<now?'overdue':'planned';
+}
+export function snapshotRows(s,month,now=today()){
+ const byJob=new Map(s.visits.filter(v=>v.job_id).map(v=>[v.job_id,v])),returned=new Set(s.returned||[]);
+ const out=s.jobs.map(j=>({id:'job-'+j.id,job:j,visit:byJob.get(j.id)||null,date:j.service_date,status:rowStatus(j,byJob.get(j.id)||null,returned,now)}));
  for(const v of s.visits)if(!v.job_id||!s.jobs.some(j=>j.id===v.job_id))out.push({id:'visit-'+v.id,job:null,visit:v,date:v.service_date,status:v.status});
  return out.filter(r=>r.job?.service_date.startsWith(month)||r.visit?.service_date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)||(a.job?.sequence||0)-(b.job?.sequence||0)||a.id.localeCompare(b.id));
 }
-export const csvHeaders=['Mês do relatório','Equipe','Data programada','Data da execução','Sequência','Serviço','Local programado','Local executado','Bairro','Tipo de local','Situação','Prioridade','Motorista','Caminhão','Ajudantes','Responsável','Efetivo','Iniciado em (UTC)','Finalizado em (UTC)','Duração (min)','Água utilizada (L)','Reabastecimentos','Orientações da programação','Ocorrências / observações','Justificativa sem foto','Fotos antes','Fotos depois','Latitude','Longitude','Precisão (m)','Localização capturada em (UTC)','Mapa','ID da programação','ID do atendimento','Arquivo de origem','Referência do Excel','Liberada aos pipeiros','Programação cancelada','Criado em (UTC)','Atualizado em (UTC)','Autor do registro','Última alteração por'];
+// Pendências em aberto, de qualquer mês: liberadas, não canceladas, vencidas, sem retorno ativo e sem conclusão.
+export function openBacklog(s,now=today()){
+ const byJob=new Map(s.visits.filter(v=>v.job_id).map(v=>[v.job_id,v])),returned=new Set(s.returned||[]);
+ return s.jobs.filter(j=>j.published&&!j.cancelled&&j.service_date<now&&!returned.has(j.id)).map(j=>{const v=byJob.get(j.id)||null;return {id:'job-'+j.id,job:j,visit:v,date:j.service_date,status:rowStatus(j,v,returned,now)};})
+  .filter(r=>['overdue','in_progress','partial','pending'].includes(r.status)).sort((a,b)=>a.date.localeCompare(b.date)||a.job.sequence-b.job.sequence);
+}
+// Pode reprogramar: parcial ou pendente, ou vencido sem atendimento; nunca concluído, cancelado ou já reprogramado.
+export function canReprogram(r){return !!r.job&&!r.job.cancelled&&r.job.published&&['partial','pending','overdue'].includes(r.status);}
+export const brasilia=v=>{if(!v)return '';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleString('sv-SE',{timeZone:'America/Sao_Paulo',hour12:false}).slice(0,16):'';};
+export const csvHeaders=['Mês do relatório','Equipe','Data programada','Data da execução','Sequência','Serviço','Local programado','Local executado','Bairro','Tipo de local','Situação','Prioridade','Motorista','Caminhão','Ajudantes','Responsável','Efetivo','Iniciado em (Brasília)','Finalizado em (Brasília)','Duração (min)','Água utilizada (L)','Reabastecimentos','Orientações da programação','Ocorrências / observações','Justificativa sem foto','Fotos antes','Fotos depois','Latitude','Longitude','Precisão (m)','Localização capturada em (Brasília)','Mapa','ID da programação','ID do atendimento','Arquivo de origem','Referência do Excel','Liberada aos pipeiros','Programação cancelada','Criado em (Brasília)','Atualizado em (Brasília)','Autor do registro','Última alteração por','Retorno do serviço (ID)'];
 const cell=v=>'"'+(typeof v==='number'&&Number.isFinite(v)?String(v):String(v??'').replace(/^[\s\u0000-\u001f]*[=+@-]/,"'$&")).replaceAll('"','""')+'"';
-export function washingCsv(s,month){
- const rows=snapshotRows(s,month).map(({job:j,visit:v,status})=>{const team=s.teams.find(t=>t.id===(j?.team_id||v?.team_id));return [month,team?.name||j?.team_id||v?.team_id,j?.service_date,v?.service_date,j?.sequence,v?.title||j?.title,j?.location,v?.location,v?.neighborhood||j?.neighborhood,v?.target||j?.target,statusLabels[status]||status,j?.priority,v?.driver||team?.driver,v?.vehicle||team?.vehicle,v?.helpers,v?.responsible,v?.headcount,v?.started_at,v?.finished_at,v?.started_at&&v.finished_at?Math.round((new Date(v.finished_at)-new Date(v.started_at))/60000):null,v?.water_liters,v?.refills,j?.notes,v?.notes,v?.photo_justification,v?.photos_before.join(' | '),v?.photos_after.join(' | '),v?.latitude,v?.longitude,v?.accuracy_m,v?.location_captured_at,v?.latitude!==null&&v?.latitude!==undefined?'https://www.google.com/maps/search/?api=1&query='+v.latitude+','+v.longitude:'',j?.id,v?.id,j?.source_file,j?.source_ref,j?.published?'Sim':'Não',j?.cancelled?'Sim':'Não',v?.created_at||j?.created_at,v?.updated_at||j?.updated_at,v?.author_id||j?.author_id,v?.updated_by];});
+export function washingCsv(s,month,people={}){
+ const who=id=>id?(people[id]||id):'';
+ const rows=snapshotRows(s,month).map(({job:j,visit:v,status})=>{const team=s.teams.find(t=>t.id===(j?.team_id||v?.team_id));return [month,team?.name||j?.team_id||v?.team_id,j?.service_date,v?.service_date,j?.sequence,v?.title||j?.title,j?.location,v?.location,v?.neighborhood||j?.neighborhood,v?.target||j?.target,statusLabels[status]||status,j?.priority,v?.driver||team?.driver,v?.vehicle||team?.vehicle,v?.helpers,v?.responsible,v?.headcount,brasilia(v?.started_at),brasilia(v?.finished_at),v?.started_at&&v.finished_at?Math.round((new Date(v.finished_at)-new Date(v.started_at))/60000):null,v?.water_liters,v?.refills,j?.notes,v?.notes,v?.photo_justification,v?.photos_before.join(' | '),v?.photos_after.join(' | '),v?.latitude,v?.longitude,v?.accuracy_m,brasilia(v?.location_captured_at),v?.latitude!==null&&v?.latitude!==undefined?'https://www.google.com/maps/search/?api=1&query='+v.latitude+','+v.longitude:'',j?.id,v?.id,j?.source_file,j?.source_ref,j?.published?'Sim':'Não',j?.cancelled?'Sim':'Não',brasilia(v?.created_at||j?.created_at),brasilia(v?.updated_at||j?.updated_at),who(v?.author_id||j?.author_id),who(v?.updated_by),j?.return_of||''];});
  return '\ufeff'+[csvHeaders,...rows].map(row=>row.map(cell).join(';')).join('\r\n');
 }

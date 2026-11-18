@@ -12,6 +12,12 @@ O endereço principal permanece https://gabrielcabteo.github.io/suma-operacoes/ 
 6. O pipeiro usa **Iniciar**, adiciona evidências e usa **Finalizar**, ou informa uma ocorrência. Conclusão/parcial exigem foto depois ou justificativa com pelo menos 10 caracteres. Água e reabastecimentos são opcionais.
 7. Em **Resumo e CSV**, baixe somente as lavagens. O CSV identifica data programada e data executada e inclui pendências, cancelamentos, autoria, quantitativos e caminhos privados das fotos.
 
+## Pendências em aberto e retornos
+
+A Programação mostra no topo as **pendências em aberto** dos últimos 180 dias, de qualquer mês: serviços liberados, com data vencida e ainda não concluídos (Atrasado, Em andamento, Parcial ou Pendente), com os dias de atraso. O administrador usa **Reprogramar retorno** para criar um novo serviço ligado ao original, com data, equipe e motivo. O registro original, as fotos e a auditoria não mudam; o original passa a aparecer como **Reprogramado** e sai das pendências. Cancelar o retorno devolve o original às pendências. **Liberar programação** publica os serviços do mês sem trocar o arquivo de origem. O CSV traz os horários no fuso de Brasília, os nomes dos autores e a coluna do serviço original de cada retorno.
+
+O esquema está em `supabase/20261118_pipa_backlog_and_returns.sql` e deve ser aplicado **antes** de publicar a interface nova. Verificação: `node pages/pipa-backlog.test.mjs`.
+
 ## Dados e proteção
 
 A sessão permanece salva no mesmo navegador/aparelho ao fechar e reabrir o site, com renovação automática pelo Supabase. **Sair / trocar conta** encerra a sessão desse navegador e atualiza as abas abertas. O login anterior por aba é migrado ao abrir a atualização. Não são armazenadas senhas. A validação do usuário no servidor e de suas permissões continua obrigatória; falhas temporárias de conexão oferecem nova tentativa sem apagar o acesso salvo. Uma troca de conta descarta a tela e os dados em memória da conta anterior.

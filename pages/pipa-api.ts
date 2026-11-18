@@ -20,12 +20,26 @@ export interface PipaClient{
  assign(userId:string,teamId:string|null):Promise<void>;
  importJobs(rows:JobInput[],source:string,published:boolean):Promise<ImportResult>;
  updateJob(job:Job):Promise<void>;
+ reprogram(jobId:string,date:string,teamId:string,reason:string):Promise<Job>;
+ publishMonth(month:string):Promise<number>;
  saveVisit(draft:Draft):Promise<Visit>;
  photos(paths:string[]):Promise<string[]>;
  history(entity:string,id:string):Promise<Audit[]>;
  reverse(lat:number,lon:number):Promise<GeoResult>;
 }
 export const pipaClient:PipaClient={
+ async reprogram(job,date,team,reason){
+  const {data,error}=await db().rpc('reprogram_pipa_job',{p_job:job,p_date:date,p_team:team,p_reason:reason.trim(),p_published:true});
+  if(error){
+   if(error.code==='23505')throw new PipaError('Já existe retorno para este serviço, ou outro serviço no mesmo local, data e equipe. Atualize a lista.',false,error.code);
+   const known:[RegExp,string][]=[[/futura/i,'O retorno deve ser para hoje ou uma data futura.'],[/prazo/i,'Este serviço ainda está no prazo: use Editar programação.'],[/concluido/i,'Serviço concluído não precisa de retorno.'],[/motivo/i,'Informe o motivo do retorno (3 a 500 caracteres).'],[/equipe/i,'Escolha a equipe do retorno.']];
+   const hit=error.code==='23514'&&known.find(([re])=>re.test(error.message||''));
+   if(hit)throw new PipaError(hit[1],false,error.code);
+   fail(error);
+  }
+  return data as Job;
+ },
+ async publishMonth(month){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new PipaError('Escolha um mês válido.');const {data,error}=await db().rpc('publish_pipa_jobs',{p_month:month+'-01'});if(error)fail(error);return Number(data)||0;},
  async snapshot(month){if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw new PipaError('Escolha um mês válido.');const {data,error}=await db().rpc('pipa_snapshot',{p_month:month+'-01'});if(error)fail(error);return data as Snapshot;},
  async accounts(){const {data,error}=await db().rpc('pipa_accounts');if(error)fail(error);return data as Account[];},
  async saveTeam(t){const {error}=await db().from('pipa_teams').update({name:t.name.trim(),driver:t.driver.trim(),vehicle:t.vehicle.trim(),helpers:t.helpers.trim(),updated_at:new Date().toISOString()}).eq('id',t.id);if(error)fail(error);},

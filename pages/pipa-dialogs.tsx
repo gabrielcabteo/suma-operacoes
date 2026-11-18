@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 import {X} from 'lucide-react';
-import type {Audit,Job,JobInput,Team} from './pipa-types';
+import type {Audit,Job,JobInput,Team,Visit} from './pipa-types';
 import type {PipaClient} from './pipa-api';
 import {localTime,statusLabels,targets,today,validateJob} from './pipa-model.mjs';
 export function PipaModal({title,children,onClose,busy=false}:{title:string;children:ReactNode;onClose:()=>void;busy?:boolean}){
@@ -30,4 +30,18 @@ export function HistoryDialog({entity,id,client,onClose}:{entity:string;id:strin
  const [rows,setRows]=useState<Audit[]>([]),[error,setError]=useState(''),[loading,setLoading]=useState(true);
  useEffect(()=>{let active=true;client.history(entity,id).then(r=>active&&setRows(r)).catch(e=>active&&setError(e.message)).finally(()=>active&&setLoading(false));return()=>{active=false}},[client,entity,id]);
  return <PipaModal title="Histórico de alterações" onClose={onClose}><div className="pp-modal-content">{error&&<p className="fo-alert">{error}</p>}{loading?<p role="status">Consultando histórico…</p>:!rows.length?<p>Sem alterações registradas.</p>:rows.map(r=><article className="pp-audit" key={r.id}><strong>{r.action==='INSERT'?'Registro criado':r.action==='DELETE'?'Vínculo removido':'Registro atualizado'}</strong><p>{r.actor_name} · {localTime(r.occurred_at)}</p><dl>{Object.entries(names).filter(([k])=>r.after_data&&JSON.stringify(r.before_data?.[k])!==JSON.stringify(r.after_data[k])).map(([k,label])=><div key={k}><dt>{label}</dt><dd>{r.before_data&&<span>{value(k,r.before_data[k])} → </span>}{value(k,r.after_data?.[k])}</dd></div>)}</dl></article>)}{rows.length===100&&<p className="fo-muted">Exibindo as 100 alterações mais recentes.</p>}</div></PipaModal>;
+}
+// Reprograma um serviço parcial, pendente ou atrasado como novo serviço ligado ao original.
+function nextWorkday(from:string){const d=new Date(from+'T12:00:00Z');do d.setUTCDate(d.getUTCDate()+1);while(d.getUTCDay()===0);return d.toISOString().slice(0,10);}
+export function ReprogramDialog({job,visit,teams,client,onClose,onSaved}:{job:Job;visit:Visit|null;teams:Team[];client:PipaClient;onClose:()=>void;onSaved:(message:string)=>void}){
+ const [date,setDate]=useState(()=>nextWorkday(today())),[team,setTeam]=useState(job.team_id),[reason,setReason]=useState(visit?.notes?.slice(0,500)||''),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const original=job.service_date.split('-').reverse().join('/');
+ return <PipaModal title="Reprogramar retorno" onClose={onClose} busy={busy}><form onSubmit={async e=>{e.preventDefault();setError('');if(!date||date<today()){setError('O retorno deve ser para hoje ou uma data futura.');return;}if(reason.trim().length<3){setError('Informe o motivo do retorno.');return;}setBusy(true);try{const created=await client.reprogram(job.id,date,team,reason);onSaved('Retorno programado para '+created.service_date.split('-').reverse().join('/')+' e liberado para a equipe.')}catch(e){setError((e as Error).message)}finally{setBusy(false)}}}>
+  <fieldset className="fo-fieldset" disabled={busy}><div className="pp-visit-summary"><strong>{job.title}</strong><p>{job.location}</p><p>Programado para {original}{visit?' · '+(statusLabels[visit.status]||visit.status):' · sem atendimento'}</p></div>
+  <p className="fo-form-intro">Cria um novo serviço ligado a este. O registro original e suas fotos não mudam, e a pendência sai da lista de abertos.</p><div className="fo-form-grid">
+  <label>Data do retorno *<input type="date" required min={today()} value={date} onChange={e=>setDate(e.target.value)}/></label>
+  <label>Equipe *<select value={team} onChange={e=>setTeam(e.target.value)}>{teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label></div>
+  <label>Motivo do retorno *<textarea rows={3} required minLength={3} maxLength={500} placeholder="Ex.: chuva interrompeu a lavagem" value={reason} onChange={e=>setReason(e.target.value)}/></label></fieldset>
+  {error&&<p className="fo-alert" role="alert">{error}</p>}<div className="fo-editor-actions"><button type="button" disabled={busy} onClick={onClose}>Voltar</button><button className="fo-primary" disabled={busy}>{busy?'Programando…':'Programar retorno'}</button></div>
+ </form></PipaModal>;
 }

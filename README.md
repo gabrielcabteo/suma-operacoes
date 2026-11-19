@@ -9,7 +9,7 @@ O endereço principal permanece https://gabrielcabteo.github.io/suma-operacoes/ 
 3. Os colaboradores criam/acessam suas contas e confirmam o e-mail. Vincule cada conta à equipe correta em **Contas dos pipeiros**.
 4. Em **Programação**, escolha o mês. Use **Importar Excel** (.xlsx até 5 MB), selecione aba/títulos/colunas, revise e distribua os atendimentos. A prévia permite corrigir e desmarcar linhas. Pode cadastrar um local manualmente para testar.
 5. Confira e libere a programação. Cada equipe vê apenas seus serviços publicados.
-6. O pipeiro usa **Iniciar**, adiciona evidências e usa **Finalizar**, ou informa uma ocorrência. Conclusão/parcial exigem foto depois ou justificativa com pelo menos 10 caracteres. Água e reabastecimentos são opcionais.
+6. O pipeiro usa **Iniciar**, adiciona evidências e usa **Finalizar**, ou informa uma ocorrência. Conclusão/parcial exigem foto depois ou justificativa com pelo menos 10 caracteres, além da água utilizada (L, maior que zero na conclusão) e do número de reabastecimentos (0 se não houve). Até 3 fotos antes e 4 depois.
 7. Em **Resumo e CSV**, baixe somente as lavagens. O CSV identifica data programada e data executada e inclui pendências, cancelamentos, autoria, quantitativos e caminhos privados das fotos.
 
 ## Pendências em aberto e retornos

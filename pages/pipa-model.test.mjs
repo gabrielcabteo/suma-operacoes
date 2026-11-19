@@ -30,7 +30,7 @@ assert.notEqual(jobKey(imported[1].values),jobKey(imported[2].values));
 const f={...blankVisit(null,teams[0],'Fiscal'),title:'Lavagem',location:'Local',started_at:new Date().toISOString()};
 validateVisit(f);assert.throws(()=>validateVisit({...f,status:'completed',finished_at:f.started_at}),/foto/);
 assert.throws(()=>validateVisit({...f,status:'partial',finished_at:f.started_at,photo_justification:'Justificativa do teste'}),/motivo/);
-validateVisit({...f,status:'completed',finished_at:f.started_at,photo_justification:'Justificativa do teste'});
+assert.throws(()=>validateVisit({...f,status:'completed',finished_at:f.started_at,photo_justification:'Justificativa do teste'}),/água/);assert.throws(()=>validateVisit({...f,status:'completed',finished_at:f.started_at,photo_justification:'Justificativa do teste',water_liters:8000}),/reabastecimentos/);assert.throws(()=>validateVisit({...f,status:'completed',finished_at:f.started_at,photo_justification:'Justificativa do teste',water_liters:0,refills:0}),/maior que zero/);validateVisit({...f,status:'completed',finished_at:f.started_at,photo_justification:'Justificativa do teste',water_liters:8000,refills:0});validateVisit({...f,status:'pending',notes:'Chuva forte'});
 const v={...f,id:'visit',job_id:'job',service_date:'2026-11-01',status:'completed',title:'=1+1',notes:'Texto; "com aspas"\ne quebra',latitude:0,longitude:0,accuracy_m:5,water_liters:0,refills:0,created_at:'2026-11-01T08:00:00Z',updated_at:'2026-11-01T09:00:00Z',author_id:'author',updated_by:'actor',finished_at:f.started_at};
 const job={...imported[0].values,id:'job',source_file:'programação.xlsx',published:true,cancelled:false};
 const snapshot={teams,jobs:[job],visits:[v]};

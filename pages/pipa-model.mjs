@@ -69,9 +69,14 @@ export function validateVisit(f,beforeCount=f.photos_before.length,afterCount=f.
  if(['completed','partial'].includes(f.status)&&!f.finished_at)throw Error('Toque em Finalizar para registrar o término.');
  for(const value of [f.started_at,f.finished_at,f.location_captured_at])if(value&&!Number.isFinite(new Date(value).getTime()))throw Error('Há uma data ou um horário inválido.');
  if(f.finished_at&&(!f.started_at||new Date(f.finished_at)<new Date(f.started_at)))throw Error('O término deve ser posterior ao início.');
- if(beforeCount>2||afterCount>3)throw Error('Use até duas fotos antes e três fotos depois.');
+ if(beforeCount>3||afterCount>4)throw Error('Use até três fotos antes e quatro fotos depois.');
  if(['completed','partial'].includes(f.status)&&!afterCount&&f.photo_justification.trim().length<10)throw Error('Anexe uma foto depois da lavagem ou justifique a ausência (pelo menos 10 caracteres).');
  if(['partial','pending','cancelled'].includes(f.status)&&f.notes.trim().length<3)throw Error('Informe o motivo da situação ou da necessidade de retorno.');
+ if(['completed','partial'].includes(f.status)){
+  if(f.water_liters===null||f.water_liters===undefined)throw Error('Informe a água utilizada (litros) para finalizar.');
+  if(f.refills===null||f.refills===undefined)throw Error('Informe os reabastecimentos (use 0 se não houve).');
+  if(f.status==='completed'&&f.water_liters===0)throw Error('Lavagem concluída precisa de consumo de água maior que zero.');
+ }
  if(f.notes.length>2000||f.photo_justification.length>1000||f.helpers.length>300||f.neighborhood.length>120)throw Error('Há um campo acima do tamanho permitido.');
  for(const [k,max,min] of [['water_liters',1000000,0],['refills',100,0],['headcount',300,1]])if(f[k]!==null&&(!Number.isInteger(f[k])||f[k]<min||f[k]>max))throw Error('Confira os quantitativos informados.');
  if((f.latitude===null)!==(f.longitude===null)||f.latitude!==null&&(!Number.isFinite(f.latitude)||Math.abs(f.latitude)>90||!Number.isFinite(f.longitude)||Math.abs(f.longitude)>180))throw Error('Coordenadas inválidas. Capture a localização novamente.');
